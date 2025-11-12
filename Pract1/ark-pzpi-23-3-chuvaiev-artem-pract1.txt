@@ -1,0 +1,476 @@
+﻿Міністерство освіти та науки України
+Харківський національний університет радіоелектроніки
+
+
+Кафедра програмної інженерії
+
+
+
+Звіт до практичного завдання №1
+з дисципліни «Аналіз та рефакторинґ коду»
+на тему: «Правила оформлення програмного коду мовою C# для веб-розробки з використанням фреймворку ASP.NET»
+
+
+
+
+
+
+
+Виконав 	
+ст. гр. ПЗПІ-23-3                                                               			Чуваєв А.О.
+Перевірив
+ст. викладач катедри ПІ 					Сокорчук І.П.
+
+
+
+
+
+                                                                                     
+Харків 2025
+
+2 ЗАВДАННЯ
+     Мета роботи: 
+     Дослідити та продемонструвати основні принципи написання якісного коду на мові програмування C#, проаналізувати типові проблеми та методи їх усунення через застосування принципів рефакторинґу, SOLID та Clean Code, обґрунтувати кожну рекомендацію на конкретних прикладах коду з порівняльним аналізом до та після покращень, а також сформувати практичні поради для підвищення читабельності, підтримуваності та якості програмного забезпечення.
+
+
+
+
+
+3 ОПИС ВИКОНАНОЇ РОБОТИ
+
+     У рамках практичної роботи було детально вивчено та проаналізовано правила оформлення програмного коду мовою C# для веб-розробки з використанням фреймворку ASP.NET Core. Робота базувалася на офіційних стандартах Microsoft, зокрема Microsoft C# Coding Conventions, .NET Runtime Coding Style та Framework Design Guidelines.
+3.1 Стильові рекомендації та форматування коду
+     Основою якісного коду є дотримання стандартів форматування. Згідно з офіційними рекомендаціями Microsoft, для відступів необхідно використовувати чотири пробіли замість символу табуляції. Фігурні дужки мають розташовуватися на новому рядку відповідно до стилю Allman. Після ключових слів керування потоком (if, for, while) обов'язково ставиться пробіл перед круглими дужками.
+Приклад правильного форматування:
+01 public class UserService
+02 {
+03     private readonly IUserRepository _repository;
+04     
+05     public UserService(IUserRepository repository)
+06     {
+07         _repository = repository;
+08     }
+09     
+10     public async Task<User> GetUserAsync(int id)
+11     {
+12         if (id <= 0)
+13         {
+14             throw new ArgumentException("User ID must be positive", nameof(id));
+15         }
+16         
+17         return await _repository.FindByIdAsync(id);
+18     }
+19 }
+3.2 Конвенції найменування елементів коду
+     Правильне найменування елементів коду є критично важливим для забезпечення читабельності та підтримки програмного продукту. Було досліджено та систематизовано наступні правила:
+* класи, структури та методи іменуються у стилі PascalCase (наприклад, UserManager, ProcessPayment);
+* інтерфейси починаються з великої літери I та пишуться у PascalCase (наприклад, IUserService, IPaymentProcessor);
+* приватні поля починаються з символу підкреслення та пишуться у camelCase (наприклад, _userId, _logger);
+* параметри методів та локальні змінні пишуться у camelCase без підкреслення (наприклад, userName, totalAmount);
+* константи та статичні readonly поля пишуться у PascalCase (наприклад, MaxRetryCount, DefaultTimeout);
+* властивості (properties) завжди пишуться у PascalCase (наприклад, FirstName, CreatedDate).
+Приклад застосування конвенцій найменування:
+01  public interface IPaymentProcessor
+02  {
+03      Task<PaymentResult> ProcessPaymentAsync(decimal amount, string currency);
+04  }
+05  
+06  public class PaymentProcessor : IPaymentProcessor
+07  {
+08      private readonly ILogger<PaymentProcessor> _logger;
+09      private readonly IPaymentGateway _gateway;
+10      private const int MaxRetryAttempts = 3;
+11      
+12      public string ProcessorName { get; set; }
+13      public bool IsEnabled { get; set; }
+14      
+15      public PaymentProcessor(ILogger<PaymentProcessor> logger, IPaymentGateway gateway)
+16      {
+17          _logger = logger;
+18          _gateway = gateway;
+19      }
+20      
+21      public async Task<PaymentResult> ProcessPaymentAsync(decimal amount, string currency)
+22      {
+23          int retryCount = 0;
+24          bool isSuccessful = false;
+25          
+26          while (retryCount < MaxRetryAttempts && !isSuccessful)
+27          {
+28              isSuccessful = await TryProcessAsync(amount, currency);
+29              retryCount++;
+30          }
+31          
+32          return new PaymentResult { Success = isSuccessful };
+33      }
+34      
+35      private async Task<bool> TryProcessAsync(decimal amount, string currency)
+36      {
+37          // Логіка обробки платежу
+38          return await _gateway.ChargeAsync(amount, currency);
+39      }
+40  }
+3.3 Структура та організація коду
+     Для забезпечення логічної організації коду в класах було вивчено рекомендований порядок розташування членів класу:
+1. константи та статичні readonly поля;
+2. приватні поля екземпляра класу;
+3. конструктори (від публічних до приватних);
+4. властивості (properties);
+5. публічні методи;
+6. захищені методи (protected);
+7. приватні методи.
+     Для публічного API обов'язковим є використання XML-коментарів з тегами summary, param, returns та exception. Замість публічних полів необхідно використовувати властивості (properties), що забезпечує кращу інкапсуляцію та можливість контролю доступу.
+3.4 Обробка помилок та винятків
+     Правильна обробка помилок є ключовим аспектом надійного програмного забезпечення. Було визначено наступні принципи:
+– не використовувати винятки для контролю потоку виконання програми;
+– не перехоплювати загальний тип Exception без необхідності;
+– створювати власні специфічні типи винятків для бізнес-логіки;
+– завжди валідувати вхідні параметри та викидати відповідні винятки (ArgumentNullException, ArgumentException).
+Приклад власного типу винятку:
+01  public class UserNotFoundException : Exception
+02  {
+03      public int UserId { get; }
+04      
+05      public UserNotFoundException(int userId) 
+06          : base($"User with ID {userId} was not found in the system")
+07      {
+08          UserId = userId;
+09      }
+10      
+11      public UserNotFoundException(int userId, Exception innerException) 
+12          : base($"User with ID {userId} was not found in the system", innerException)
+13      {
+14          UserId = userId;
+15      }
+16  }
+17  
+18  public class UserService
+19  {
+20      private readonly IUserRepository _repository;
+21      
+22      public async Task<User> GetUserByIdAsync(int userId)
+23      {
+24          if (userId <= 0)
+25          {
+26              throw new ArgumentException("User ID must be positive", nameof(userId));
+27          }
+28          
+29          var user = await _repository.FindByIdAsync(userId);
+30          
+31          if (user == null)
+32          {
+33              throw new UserNotFoundException(userId);
+34          }
+35          
+36          return user;
+37      }
+38  }
+3.5 Принципи SOLID у розробці на C#
+     Було детально розглянуто застосування принципів SOLID для створення гнучкої та підтримуваної архітектури:
+– Принцип єдиної відповідальності (Single Responsibility Principle) – кожен клас повинен мати лише одну причину для зміни. У контексті ASP.NET це означає розділення контролерів, сервісів та репозиторіїв.
+– Принцип інверсії залежностей (Dependency Inversion Principle) – модулі повинні залежати від абстракцій, а не від конкретних реалізацій. Це досягається через використання інтерфейсів та Dependency Injection контейнера.
+Приклад застосування принципів SOLID:
+01  // Інтерфейси (абстракції)
+02  public interface IOrderService
+03  {
+04      Task<int> CreateOrderAsync(CreateOrderDto dto);
+05  }
+06  
+07  public interface IOrderRepository
+08  {
+09      Task<Order> AddAsync(Order order);
+10  }
+11  
+12  public interface IEmailService
+13  {
+14      Task SendOrderConfirmationAsync(string email, int orderId);
+15  }
+16  
+17  // Реалізація сервісу
+18  public class OrderService : IOrderService
+19  {
+20      private readonly IOrderRepository _orderRepository;
+21      private readonly IEmailService _emailService;
+22      private readonly ILogger<OrderService> _logger;
+23      
+24      public OrderService(
+25          IOrderRepository orderRepository,
+26          IEmailService emailService,
+27          ILogger<OrderService> logger)
+28      {
+29          _orderRepository = orderRepository;
+30          _emailService = emailService;
+31          _logger = logger;
+32      }
+33      
+34      public async Task<int> CreateOrderAsync(CreateOrderDto dto)
+35      {
+36          _logger.LogInformation("Creating order for customer {Email}", dto.CustomerEmail);
+37          
+38          var order = new Order
+39          {
+40              CustomerEmail = dto.CustomerEmail,
+41              TotalAmount = dto.TotalAmount,
+42              CreatedDate = DateTime.UtcNow
+43          };
+44          
+45          var savedOrder = await _orderRepository.AddAsync(order);
+46          await _emailService.SendOrderConfirmationAsync(dto.CustomerEmail, savedOrder.Id);
+47          
+48          return savedOrder.Id;
+49      }
+50  }
+3.6 Оптимізація продуктивності
+     Для веб-застосунків критично важливою є продуктивність. Було вивчено наступні рекомендації:
+– Асинхронне програмування – для всіх операцій введення-виведення (запити до бази даних, HTTP-запити, робота з файлами) необхідно використовувати async/await. Це дозволяє звільняти потоки для обробки інших запитів та підвищує масштабованість.
+– Уникнення N+1 проблеми – при роботі з Entity Framework Core необхідно використовувати методи Include або Select для завантаження пов'язаних даних одним запитом.
+Приклад оптимізованого коду:
+01  // Погано - N+1 проблема
+02  public async Task<List<OrderDto>> GetOrdersWithCustomersBadAsync()
+03  {
+04      var orders = await _context.Orders.ToListAsync();
+05      
+06      foreach (var order in orders)
+07      {
+08          order.Customer = await _context.Customers.FindAsync(order.CustomerId);
+09      }
+10      
+11      return orders.Select(o => new OrderDto { /* ... */ }).ToList();
+12  }
+13  
+14  // Добре - один запит
+15  public async Task<List<OrderDto>> GetOrdersWithCustomersGoodAsync()
+16  {
+17      return await _context.Orders
+18          .Include(o => o.Customer)
+19          .Select(o => new OrderDto
+20          {
+21              OrderId = o.Id,
+22              CustomerName = o.Customer.Name,
+23              TotalAmount = o.TotalAmount
+24          })
+25          .ToListAsync();
+26  }
+3.7 Специфіка розробки на ASP.NET Core
+     Для веб-застосунків на ASP.NET Core було визначено архітектурні патерни та рекомендації:
+– Багатошарова архітектура – розділення застосунку на шари: Controllers (приймання HTTP-запитів), Services (бізнес-логіка), Repositories (доступ до даних), DTOs (об'єкти передачі даних).
+– Dependency Injection – використання вбудованого DI-контейнера для управління залежностями з відповідними життєвими циклами (Transient, Scoped, Singleton).
+– Middleware – створення власних middleware для обробки помилок, логування, автентифікації.
+Приклад налаштування DI у Program.cs:
+01  var builder = WebApplication.CreateBuilder(args);
+02  
+03  // Реєстрація сервісів
+04  builder.Services.AddDbContext<ApplicationDbContext>(options =>
+05      options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+06  
+07  builder.Services.AddScoped<IUserRepository, UserRepository>();
+08  builder.Services.AddScoped<IUserService, UserService>();
+09  builder.Services.AddTransient<IEmailService, EmailService>();
+10  builder.Services.AddSingleton<ICacheService, MemoryCacheService>();
+11  
+12  builder.Services.AddControllers();
+13  
+14  var app = builder.Build();
+15  
+16  // Налаштування middleware pipeline
+17  app.UseMiddleware<ErrorHandlingMiddleware>();
+18  app.UseHttpsRedirection();
+19  app.UseAuthorization();
+20  app.MapControllers();
+21  
+22  app.Run();
+3.8 Тестування коду
+     Було розглянуто підходи до написання unit-тестів з використанням фреймворку xUnit та бібліотеки Moq для створення mock-об'єктів:
+01  public class OrderServiceTests
+02  {
+03      [Fact]
+04      public async Task CreateOrderAsync_ValidData_ReturnsOrderId()
+05      {
+06          // Arrange
+07          var mockRepository = new Mock<IOrderRepository>();
+08          var mockEmailService = new Mock<IEmailService>();
+09          var mockLogger = new Mock<ILogger<OrderService>>();
+10          
+11          mockRepository
+12              .Setup(r => r.AddAsync(It.IsAny<Order>()))
+13              .ReturnsAsync(new Order { Id = 123 });
+14          
+15          var service = new OrderService(
+16              mockRepository.Object,
+17              mockEmailService.Object,
+18              mockLogger.Object);
+19          
+20          var dto = new CreateOrderDto
+21          {
+22              CustomerEmail = "test@example.com",
+23              TotalAmount = 100.00m
+24          };
+25          
+26          // Act
+27          var orderId = await service.CreateOrderAsync(dto);
+28          
+29          // Assert
+30          Assert.Equal(123, orderId);
+31          mockEmailService.Verify(
+32              e => e.SendOrderConfirmationAsync("test@example.com", 123),
+33              Times.Once);
+34      }
+35  }
+3.9 Інструменти забезпечення якості коду
+     У роботі було досліджено сучасні інструменти статичного аналізу та забезпечення якості коду:
+Roslyn Analyzers та StyleCop – вбудовані аналізатори, що перевіряють код на відповідність стандартам під час компіляції. Налаштовуються через файл .csproj:
+01  <PropertyGroup>
+02      <AnalysisLevel>latest</AnalysisLevel>
+03      <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+04      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+05  </PropertyGroup>
+06  
+07  <ItemGroup>
+08      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435" />
+09      <PackageReference Include="SonarAnalyzer.CSharp" Version="9.12.0.78982" />
+10  </ItemGroup>
+
+EditorConfig – файл конфігурації для уніфікації стилю коду в команді:
+01  [*.cs]
+02  indent_style = space
+03  indent_size = 4
+04  charset = utf-8
+05  trim_trailing_whitespace = true
+06  insert_final_newline = true
+07  
+08  # Naming conventions
+09  dotnet_naming_rule.interfaces_should_begin_with_i.severity = warning
+10  dotnet_naming_rule.interfaces_should_begin_with_i.symbols = interface
+11  dotnet_naming_rule.interfaces_should_begin_with_i.style = begins_with_i
+12  
+13  # Code style rules
+14  csharp_prefer_braces = true:warning
+15  csharp_prefer_simple_using_statement = true:suggestion
+16  dotnet_sort_system_directives_first = true
+ReSharper – комерційний інструмент від JetBrains, що надає понад 2500 перевірок коду, автоматичний рефакторинг, аналіз циклічної складності (Cyclomatic Complexity).
+SonarQube – платформа для комплексного аналізу якості коду, що виявляє bugs, vulnerabilities, code smells, відстежує покриття тестами та дублювання коду.
+CI/CD інтеграція – автоматизація перевірки коду через GitHub Actions або Azure DevOps:
+01  # .github/workflows/dotnet.yml
+02  name: .NET Build and Analyze
+03  
+04  on:
+05    push:
+06      branches: [ main, develop ]
+07    pull_request:
+08      branches: [ main ]
+09  
+10  jobs:
+11    build:
+12      runs-on: ubuntu-latest
+13      
+14      steps:
+15      - uses: actions/checkout@v3
+16      
+17      - name: Setup .NET
+18        uses: actions/setup-dotnet@v3
+19        with:
+20          dotnet-version: 8.0.x
+21      
+22      - name: Restore dependencies
+23        run: dotnet restore
+24      
+25      - name: Build
+26        run: dotnet build --no-restore --configuration Release
+27      
+28      - name: Run tests
+29        run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage"
+30      
+31      - name: Run StyleCop
+32        run: dotnet build --no-restore /p:EnforceCodeStyleInBuild=true
+ 
+
+ВИСНОВКИ
+     У результаті виконання практичної роботи було детально розглянуто та систематизовано правила оформлення програмного коду мовою C# для веб-розробки з використанням фреймворку ASP.NET Core на основі офіційних стандартів Microsoft (C# Coding Conventions, .NET Runtime Coding Style, Framework Design Guidelines). 
+     Розглянуто стильові рекомендації та конвенції найменування: використання чотирьох пробілів для відступів, стиль Allman для фігурних дужок, PascalCase для класів та методів, _camelCase для приватних полів, camelCase для параметрів та локальних змінних. Визначено рекомендований порядок членів класу та необхідність використання XML-коментарів для публічного API. 
+     Опрацьовано підходи до обробки помилок через створення власних специфічних типів винятків та валідацію вхідних параметрів. Детально розглянуто принципи SOLID, зокрема принцип єдиної відповідальності та інверсії залежностей через Dependency Injection. 
+     Вивчено критично важливі аспекти оптимізації продуктивності: асинхронне програмування (async/await) для операцій введення-виведення, уникнення N+1 проблеми через використання методів Include та Select у Entity Framework Core. Розглянуто багатошарову архітектуру ASP.NET Core застосунків з розділенням на Controllers, Services, Repositories та DTOs. Опрацьовано методологію написання unit-тестів з використанням xUnit та Moq для ізоляції тестованої логіки. Вивчено інструменти забезпечення якості коду: Roslyn Analyzers, StyleCop, EditorConfig, ReSharper, SonarQube. Отримано навички налаштування CI/CD pipeline через GitHub Actions або Azure DevOps.
+     Отримано практичні навички написання чистого, читабельного та підтримуваного коду згідно з індустріальними стандартами. Набуто розуміння важливості дотримання стандартів кодування для уніфікації коду в команді, полегшення code review. Отримані знання є фундаментальними для професійного розвитку у веб-розробці на платформі .NET.
+
+ПЕРЕЛІК ДЖЕРЕЛ ПОСИЛАННЯ
+    1. Microsoft C# Coding Conventions. URL: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions (дата звернення: 11.11.2025);
+    2. .NET Runtime Coding Style. URL: 
+https://github.com/dotnet/runtime/blob/main/docs/coding-guidelines/coding-style.md (дата звернення: 11.11.2025);
+    3. ASP.NET Core Documentation. URL: https://learn.microsoft.com/en-us/aspnet/core/ (дата звернення: 11.11.2025);
+    4. StyleCop Analyzers. URL: https://github.com/DotNetAnalyzers/StyleCopAnalyzers (дата звернення: 11.11.2025);
+    5. EditorConfig. URL:   https://editorconfig.org/ (дата звернення: 11.11.2025);
+    6. ReSharper Code Inspection. URL:   https://www.jetbrains.com/help/resharper/Code_Analysis__Code_Inspections.html (дата звернення: 11.11.2025).
+
+
+ДОДАТОК А
+Відеозапис
+Відеозапис доповіді: https://www.youtube.com/watch?v=la0jKLsTEdQ
+Хронологічний опис відеозапису:
+00:00 — Вступ та огляд презентації: представлення теми про правила оформлення програмного коду мовою C# з використанням фреймворку ASP.NET, огляд ключових аспектів написання якісного коду
+00:26 — Основи C#: історія мови програмування, актуальна версія C# 14, основні характеристики (строга типізація, автоматичне управління пам'яттю), джерела стандартів від Microsoft
+01:00 — Стильові рекомендації: стандарти форматування коду, використання відступів, розміщення фігурних дужок за стилем Allman, приклади правильного та неправильного форматування
+01:32 — Правила найменування елементів коду: конвенції для класів, інтерфейсів, методів, властивостей, приватних полів, параметрів та констант (PascalCase, camelCase)
+02:07 — Приклади правильного та неправильного найменування: порівняння коду з порушеннями конвенцій та коректного варіанту
+02:30 — Документування коду: використання XML-коментарів для публічного API, структуровані теги (Summary, Param, Returns, Exception)
+02:50 — Структура класу: логічний порядок членів класу (константи, поля, конструктори, властивості, методи), розділення публічних та приватних членів
+03:12 — Властивості замість публічних полів: порівняння застарілого підходу з окремими методами та сучасного Auto Property
+03:29 — Обробка помилок: правила використання винятків, створення власних специфічних типів винятків, приклад класу UserNotFoundException
+03:52 — Архітектура ASP.NET проектів: багатошарова структура (Controllers, Models, Services, Repositories, DTO, Middleware)
+04:16 — Принципи SOLID - Single Responsibility: приклад розділення відповідальностей між контролером, сервісом та email-сервісом
+04:42 — Принцип Dependency Inversion: залежність від абстракцій замість конкретних реалізацій, використання інтерфейсів через конструктор
+05:13 — Оптимізація продуктивності: використання async/await.
+05:32 — Проблема N+1 запитів: приклад неефективних множинних запитів до бази даних та рішення з використанням методу Include
+05:59 — Тестування: важливість unit-тестів, приклад з використанням бібліотеки xUnit та атрибута Theory
+06:21 — Mocking для ізоляції залежностей: використання бібліотеки Moq для створення фейкових сервісів у тестах
+06:46 — Інструменти статичного аналізу: Roslyn Analyzers, StyleCop, EditorConfig для автоматизації перевірки коду
+07:12 — Додаткові інструменти якості: ReSharper (2500+ перевірок, циклічна складність), SonarQube (виявлення багів, вразливостей, покриття тестами)
+07:34 — Інтеграція в CI/CD Pipeline: використання GitHub Actions або Azure DevOps для автоматичної перевірки коду
+08:03 — Висновки: узагальнення основних правил форматування, архітектури, тестування та використання інструментів якості
+08:32 — Використані джерела та завершення презентації
+
+
+
+ДОДАТОК Б
+Слайди презентації
+
+Рисунок Б.1 — Титульний слайд
+
+Рисунок Б.1 — Зміст презентації про правила оформлення програмного коду мовою C#
+
+Рисунок Б.3 — Вступ до мови програмування C# та офіційні джерела стандартів Microsoft
+
+Рисунок Б.4 — Стильові рекомендації та правила форматування коду мовою C#
+
+Рисунок Б.5 — Загальна таблиця правил найменування елементів програмного коду
+
+Рисунок Б.6 — Порівняння прикладів коду з порушенням та дотриманням конвенцій найменування
+
+Рисунок Б.7 — Приклади документування коду з використанням XML коментарів
+
+Рисунок Б.8 — Рекомендований порядок розташування членів класу в мові C#
+
+Рисунок Б.9 — Порівняння використання публічних полів та властивостей (properties)
+Рисунок Б.10 — Обробка помилок через створення специфічних типів винятків
+
+
+Рисунок Б.11 — Багатошарова архітектура проєкту ASP.NET Core
+
+Рисунок Б.12 — Застосування принципу єдиної відповідальності (Single Responsibility Principle)
+
+Рисунок Б.13 — Застосування принципу інверсії залежностей (Dependency Inversion Principle)
+Рисунок Б.14 — Оптимізація продуктивності через використання асинхронного програмування
+
+Рисунок Б.15 — Уникнення N+1 проблеми при роботі з базою даних через Entity Framework Core
+Рисунок Б.16 — Написання unit-тестів з використанням фреймворку xUnit
+
+Рисунок Б.17 — Використання бібліотеки Moq для ізоляції залежностей у тестах
+Рисунок Б.18 — Інструменти статичного аналізу коду: Roslyn Analyzers та StyleCop
+
+Рисунок Б.19 — Комплексні інструменти забезпечення якості коду: ReSharper та SonarQube
+Рисунок Б.20 — Висновки та узагальнення правил оформлення програмного коду
+
+Рисунок Б.21 — Список джерел та посилань на офіційну документацію
+
+Рисунок Б.22 — Слайд дякую за увагу
+61
+
+
