@@ -28,7 +28,27 @@
                                                                                      
 Харків 2025
 1. ІСТОРІЯ ЗМІН
-№ДатаВерсія звітуОпис змін та виправлень111.11.251.0Створено титульний лист214.11.251.1Опрацьовано та створено Use-case діаграму325.11.251.2Створено ER та діаграму структури БД411.12.251.3Імплементовано серверну частину системи
+№
+Дата
+Версія звіту
+Опис змін та виправлень
+1
+11.11.25
+1.0
+Створено титульний лист
+2
+14.11.25
+1.1
+Опрацьовано та створено Use-case діаграму
+3
+25.11.25
+1.2
+Створено ER та діаграму структури БД
+4
+11.12.25
+1.3
+Імплементовано серверну частину системи
+
 
 
 2. ЗАВДАННЯ
@@ -385,11 +405,106 @@ ORM – Entity Framework Core 10.0
 Доступ: Swagger UI: https://localhost:7243/swagger
 3.7.1. Ендпоінти API
 Таблиця 3.1 – User Management
-MethodEndpointОписRequest BodyResponsePOST/api/user/courier/registerРеєстрація кур'єраRegisterUserDtoUser, 201POST/api/user/client/registerРеєстрація клієнтаRegisterUserDtoUser, 201GET/api/user/{userId}/nfc/qrcode/imageQR-код для NFC-PNG Image
+Method
+Endpoint
+Опис
+Request Body
+Response
+POST
+/api/user/courier/register
+Реєстрація кур'єра
+RegisterUserDto
+User, 201
+POST
+/api/user/client/register
+Реєстрація клієнта
+RegisterUserDto
+User, 201
+GET
+/api/user/{userId}/nfc/qrcode/image
+QR-код для NFC
+-
+PNG Image
+
 Таблиця 3.2 – Package Management
-MethodEndpointОписQuery/BodyResponseGET/api/package/courierПосилки для кур'єра?serialNumber={nfc}PackageDto[], 200GET/api/package/client/{userId}Посилки клієнта-PackageDto[], 200POST/api/package/{packageId}/status/in-progressВзяв посилку?serialNumber={nfc}200POST/api/package/courier/locker/open-for-placementВідкрити коміркуOpenLockerDto200POST/api/package/placeРозмістити в комірціPlacePackageDto200POST/api/package/locker/open-all-deliveredВідкрити всі коміркиOpenAllLockersDtoint[], 200POST/api/package/{packageId}/receiveОтримати посилку?serialNumber={nfc}200
+Method
+Endpoint
+Опис
+Query/Body
+Response
+GET
+/api/package/courier
+Посилки для кур'єра
+?serialNumber={nfc}
+PackageDto[], 200
+GET
+/api/package/client/{userId}
+Посилки клієнта
+-
+PackageDto[], 200
+POST
+/api/package/{packageId}/status/in-progress
+Взяв посилку
+?serialNumber={nfc}
+200
+POST
+/api/package/courier/locker/open-for-placement
+Відкрити комірку
+OpenLockerDto
+200
+POST
+/api/package/place
+Розмістити в комірці
+PlacePackageDto
+200
+POST
+/api/package/locker/open-all-delivered
+Відкрити всі комірки
+OpenAllLockersDto
+int[], 200
+POST
+/api/package/{packageId}/receive
+Отримати посилку
+?serialNumber={nfc}
+200
+
 Таблиця 3.3 – NFC Management
-MethodEndpointОписRequestResponsePOST/api/nfcРеєстрація NFCRegisterNfcDtoUser, 200POST/api/nfc/validateВалідація NFCValidateNfcDtoUser, 200GET/api/nfc/serial/{serialNumber}/userUserId за NFC-int, 200GET/api/nfc/user/{userId}/serialNFC за UserId-string, 200GET/api/nfcВсі користувачі з NFC-User[], 200GET/api/nfc/formHTML-форма?userId={id}HTML
+Method
+Endpoint
+Опис
+Request
+Response
+POST
+/api/nfc
+Реєстрація NFC
+RegisterNfcDto
+User, 200
+POST
+/api/nfc/validate
+Валідація NFC
+ValidateNfcDto
+User, 200
+GET
+/api/nfc/serial/{serialNumber}/user
+UserId за NFC
+-
+int, 200
+GET
+/api/nfc/user/{userId}/serial
+NFC за UserId
+-
+string, 200
+GET
+/api/nfc
+Всі користувачі з NFC
+-
+User[], 200
+GET
+/api/nfc/form
+HTML-форма
+?userId={id}
+HTML
+
 Обробка помилок (Problem Details)
 Формат відповіді (RFC 7807):
 01: {
@@ -465,8 +580,8 @@ https://github.com/dotnet/runtime/blob/main/docs/coding-guidelines/coding-style.
 
 
 ДОДАТОК А
-Відеозапис
-Хронологічний опис відеозапису:
+Відеозапис 
+Хронологічний опис відеозапису: https://youtu.be/jwJypcmRYI8
 00:00:00 — Вступ
 00:00:12 — UML-діаграма прецедентів.
 00:00:23 — Актори системи.
