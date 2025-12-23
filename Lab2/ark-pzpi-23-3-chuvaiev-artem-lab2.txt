@@ -1,0 +1,523 @@
+﻿Міністерство освіти та науки України
+Харківський національний університет радіоелектроніки
+
+
+Кафедра програмної інженерії
+
+
+
+Звіт до лабораторної роботи №2
+з дисципліни «Аналіз та рефакторинґ коду»
+на тему: «Програмна система поштових шафок із магнітними замками, що відпираються за допомогою NFC»
+
+
+
+
+
+
+
+Виконав 	
+ст. гр. ПЗПІ-23-3                                                               			Чуваєв А.О.
+Перевірив
+ст. викладач катедри ПІ 					Сокорчук І.П.
+
+
+
+
+
+                                                                                     
+Харків 2025
+1. ІСТОРІЯ ЗМІН
+№ДатаВерсія звітуОпис змін та виправлень111.11.251.0Створено титульний лист214.11.251.1Опрацьовано та створено Use-case діаграму325.11.251.2Створено ER та діаграму структури БД411.12.251.3Імплементовано серверну частину системи
+
+
+2. ЗАВДАННЯ
+     Мета роботи: 
+     Метою даної лабораторної роботи є розробка повнофункціональної бази даних та прикладного програмного інтерфейсу для серверної частини програмної системи управління поштовими шафками з магнітними NFC-замками. В рамках роботи необхідно спроектувати архітектуру системи, створити модель даних, реалізувати базу даних з відповідними функціями доступу та розробити API для забезпечення взаємодії між серверною частиною системи та клієнтськими додатками. Система повинна забезпечувати управління користувачами, поштовими шафками, посилками, NFC-картками, а також контролювати доступ до комірок через магнітні замки. Результатом роботи має стати готова до інтеграції серверна частина з документованим API, що дозволить клієнтським додаткам виконувати операції реєстрації користувачів, розміщення та отримання посилок, відкриття замків за допомогою NFC-технології, а також моніторингу стану шафок у режимі реального часу.
+
+
+
+
+3. ОПИС ВИКОНАНОЇ РОБОТИ
+3.1.  Обґрунтування вибору мови програмування
+     Для реалізації серверної частини програмної системи обрано C# (.NET 10.0) з наступних причин:
+Технічні переваги:
+* Продуктивність: .NET 10.0 – це найновіша версія платформи з покращеною продуктивністю та оптимізацією роботи з пам'яттю;
+* Типобезпека: Строга статична типізація мінімізує помилки на етапі компіляції;
+* Асинхронність: Вбудована підтримка async/await для ефективної обробки багатопотокових операцій;
+* Entity Framework Core: Потужний ORM для роботи з базами даних з підтримкою PostgreSQL.
+3.1.1. Екосистема та інструментарій:
+* ASP.NET Core: Сучасний фреймворк для створення REST API з вбудованою підтримкою Swagger/OpenAPI;
+* Dependency Injection: Вбудована підтримка впровадження залежностей для побудови слабкозв'язаної архітектури;
+* Middleware Pipeline: Гнучка система обробки HTTP-запитів;
+* Міграції БД: Entity Framework забезпечує версіювання схеми бази даних.
+3.1.2. Підтримка сучасних патернів:
+* Repository Pattern;
+* Result Pattern;
+* Generic Programming;
+* LINQ для роботи з даними.
+3.2.  Розробка архітектури програмної системи
+     Архітектура побудована за принципами Clean Architecture та Layered Architecture з чітким розділенням відповідальності:
+Api/
+├── Controllers/          # Presentation Layer
+│   ├── UserController.cs
+│   ├── PackageController.cs
+│   └── NfcController.cs
+├── Services/            # Business Logic Layer
+│   ├── Interfaces/
+│   │   ├── IUserService.cs
+│   │   ├── IPackageService.cs
+│   │   ├── INfcService.cs
+│   │   └── IQrCodeService.cs
+│   └── Implementations/
+│       ├── UserService.cs
+│       ├── PackageService.cs
+│       ├── NfcService.cs
+│       └── QrCodeService.cs
+├── Infrastructure/      # Data Access & Cross-cutting concerns
+│   ├── Data/
+│   │   ├── ApplicationDbContext.cs
+│   │   ├── Configurations/    # EF Core конфігурації
+│   │   └── Migrations/        # Міграції БД
+│   ├── Repository/
+│   │   ├── IGenericRepository.cs
+│   │   └── GenericRepository.cs
+│   ├── Email/
+│   │   ├── IEmailService.cs
+│   │   └── EmailService.cs
+│   └── Errors/          # Обробка помилок
+├── Models/              # Domain Layer
+│   ├── Entities/
+│   │   ├── User.cs
+│   │   ├── Package.cs
+│   │   ├── Role.cs
+│   │   ├── DeliveryStatus.cs
+│   │   └── PackageCategory.cs
+│   └── DTOs/           # Data Transfer Objects
+├── ApiResult/          # API Response handling
+└── Program.cs          # Application entry point
+Presentation Layer (Controllers)
+* Відповідає за прийом HTTP-запитів та формування відповідей
+* Валідація вхідних даних
+* Маршрутизація запитів до відповідних сервісів
+* Перетворення результатів в HTTP-відповіді (Success/Error)
+Business Logic Layer (Services)
+* Реалізація бізнес-логіки системи
+* Валідація бізнес-правил
+* Координація операцій між різними репозиторіями
+* Відправка email-повідомлень
+* Генерація QR-кодів
+Data Access Layer (Repository + EF Core)
+* Абстракція доступу до бази даних
+* Generic Repository для уніфікованої роботи з сутностями
+* Автоматичне відстеження змін (Change Tracking)
+* Підтримка транзакцій
+Domain Layer (Models)
+* Визначення доменних сутностей
+* Зв'язки між сутностями
+* DTO для передачі даних між шарами
+3.3.  Використання шаблонів проєктування
+3.3.1. Repository Pattern 
+     Реалізовано Generic Repository для уніфікованого доступу до даних:
+1: public interface IGenericRepository<T> where T : BaseEntity
+2: {
+3:     Task<Result<IEnumerable<T>>> GetListByConditionAsync(...);
+4:     Task<Result<T>> GetSingleByConditionAsync(...);
+5:     Task<Result<int>> AddAsync(T item);
+6:     Task<Result> UpdateAsync(T item);
+7:     Task<Result> DeleteAsync(Expression<Func<T, bool>> condition);
+8: }
+Переваги:
+* Уніфікований інтерфейс для всіх сутностей
+* Підтримка фільтрації, сортування, Include для зв'язків
+* Автоматична обробка CreatedOn/LastModifiedOn
+* Централізована обробка помилок
+3.3.2. Result Pattern 
+01: public class Result
+02: {
+03:     public bool IsSuccess { get; }
+04:     public IEnumerable<Error> Errors { get; }
+05: }
+06: public class Result<T> : Result
+07: {
+08:     public T Value { get; }
+09: }
+Переваги:
+* Явна обробка помилок без exception
+* Типобезпечність
+* Можливість повернення множинних помилок
+* Функціональний підхід (Match methods)
+3.3.3. Dependency Injection (DI) 
+Використовується вбудований DI-контейнер ASP.NET Core:
+1: builder.Services.AddScoped<IGenericRepository<User>, GenericRepository<User>>();
+2: builder.Services.AddScoped<IGenericRepository<Package>, GenericRepository<Package>>();
+3: builder.Services.AddScoped<IUserService, UserService>();
+4: builder.Services.AddScoped<IPackageService, PackageService>();
+5: builder.Services.AddScoped<INfcService, NfcService>();
+Переваги:
+* Слабке зв'язування компонентів
+* Простота тестування (можливість мокування)
+* Автоматичне керування життєвим циклом об'єктів
+3.3.4. Unit of Work Pattern
+Реалізовано через DbContext та метод SaveAsync():
+* Групування операцій
+* Автоматичне оновлення timestamp полів
+* Транзакційність операцій
+Service Layer Pattern 
+Бізнес-логіка винесена в окремі сервіси:
+* UserService – реєстрація та управління користувачами
+* PackageService – управління посилками та статусами
+* NfcService – валідація NFC-карток
+* QrCodeService – генерація QR-кодів
+3.3.5. DTO Pattern 
+Використовуються Data Transfer Objects для передачі даних:
+* RegisterUserDto
+* PackageDto
+* PlacePackageDto
+* ValidateNfcDto
+Переваги:
+* Відокремлення внутрішньої структури від API
+* Контроль над даними, що передаються
+* Можливість валідації
+3.3.6. Fluent API Configuration 
+* Конфігурація EF Core через окремі класи:
+* UserConfiguration
+* PackageConfiguration
+* RoleConfiguration
+Переваги:
+* Чистота моделей (без атрибутів)
+* Централізована конфігурація
+* Підтримка складних зв'язків
+3.4. Побудова uml-діаграм
+3.4.1. Діаграма прецедентів (Use Case Diagram)
+Актори:
+* Courier (Кур'єр) – доставляє посилки
+* Client (Клієнт) – отримує посилки
+* System (Система) – автоматичні операції
+Прецеденти:
+Для Кур'єра:
+* Реєстрація в системі (Register Courier)
+* Прив'язка NFC-картки
+* Перегляд списку посилок для доставки
+* Зміна статусу посилки на "В дорозі"
+* Відкриття комірки для розміщення посилки
+* Розміщення посилки в комірці
+Для Клієнта:
+* Реєстрація в системі (Register Client)
+* Прив'язка NFC-картки через QR-код
+* Перегляд власних посилок
+* Відкриття комірок з доставленими посилками
+* Отримання посилки
+Системні:
+* Валідація NFC-картки
+* Відправка email-повідомлень
+* Генерація QR-кодів
+* Управління статусами посилок
+3.4.2. ER-діаграма (Entity-Relationship Diagram)
+Детальний опис таблиць:Users
+* Id (PK, INT, IDENTITY);
+* EmailAddress (VARCHAR(255), UNIQUE, NOT NULL);
+* SerialNfcData (VARCHAR(255), NULLABLE);
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+Roles
+* Id (PK, INT, IDENTITY);
+* Name (VARCHAR(50), NOT NULL) – "Courier", "Client";
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+UserRoles (зв'язкова таблиця Many-to-Many)
+* Id (PK, INT, IDENTITY);
+* UserId (FK → Users.Id);
+* RoleId (FK → Roles.Id);
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+Packages
+* Id (PK, INT, IDENTITY);
+* Height (INT, NOT NULL);
+* Width (INT, NOT NULL);
+* Depth (INT, NOT NULL)
+* PostBoxId (INT, NOT NULL) – номер комірки;
+* UserId (FK → Users.Id, NOT NULL);
+* CategoryId (FK → PackageCategories.Id);
+* DeliveryStatusId (FK → DeliveryStatuses.Id);
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+PackageCategories
+* Id (PK, INT, IDENTITY);
+* Name (VARCHAR(100), NOT NULL) – "Small", "Medium", "Large";
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+DeliveryStatuses
+* Id (PK, INT, IDENTITY);
+* Name (VARCHAR(50), NOT NULL) – "Pending", "In Progress", "Delivered", "Received";
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+AppLogs (для логування)
+* Id (PK, INT, IDENTITY);
+* Level (VARCHAR(50));
+* Message (TEXT);
+* CreatedOn (TIMESTAMPTZ, NOT NULL);
+* LastModifiedOn (TIMESTAMPTZ, NOT NULL).
+3.5. Реалізація функціональних модулів
+3.5.1. Модуль управління користувачами (User Management)
+Функціональність:
+* Реєстрація кур'єрів (POST /api/user/courier/register)
+* Реєстрація клієнтів (POST /api/user/client/register)
+* Генерація QR-коду для прив'язки NFC (GET /api/user/{userId}/nfc/qrcode/image)
+Особливості:
+* Автоматичне призначення ролей
+* Non-blocking відправка email (не блокує реєстрацію)
+* Валідація email через Result Pattern
+Модуль управління посилками (Package Management)
+Функціональність:
+* Перегляд посилок для кур'єра (GET /api/package/courier?serialNumber={nfc});
+* Перегляд посилок клієнта (GET /api/package/client/{userId});
+* Зміна статусу на "В дорозі" (POST /api/package/{id}/status/in-progress);
+* Розміщення в комірці (POST /api/package/place);
+* Отримання посилки (POST /api/package/{id}/receive);
+* Відкриття всіх комірок з посилками (POST /api/package/locker/open-all-delivered).
+Бізнес-логіка:
+Процес доставки посилки:
+1. Статус "Pending" → Кур'єр бачить посилку;
+2. Кур'єр змінює на "In Progress" → Взяв посилку;
+3. Кур'єр відкриває комірку → Система перевіряє роль;
+4. Кур'єр розміщує посилку → Статус "Delivered", email клієнту;
+5. Клієнт відкриває комірку → Система перевіряє прив'язку NFC;
+6. Клієнт забирає → Статус "Received", email підтвердження.
+Валідації:
+* Перевірка NFC перед кожною операцією;
+* Перевірка ролі користувача (Courier/Client);
+* Перевірка прив'язки комірки до клієнта;
+* Перевірка можливих переходів між статусами.
+3.5.2. Модуль NFC-автентифікації
+Функціональність:
+* Реєстрація NFC-картки (POST /api/nfc);
+* Валідація NFC (POST /api/nfc/validate);
+* Отримання UserId за серійним номером (GET /api/nfc/serial/{serialNumber}/user);
+* Отримання серійного номера за UserId (GET /api/nfc/user/{userId}/serial);
+* HTML-форма для збору NFC даних (GET /api/nfc/form?userId={id}).
+Інтеграція:
+* QR-код веде на веб-форму
+* Форма відправляє дані на API
+* API зберігає прив'язку NFC → User
+3.5.3. Модуль email-повідомлень
+Функціональність:
+* Відправка підтвердження реєстрації
+* Повідомлення про доставку в комірку
+* Підтвердження отримання посилки
+Технічна реалізація:
+1: public interface IEmailService
+2: {
+3:     Task SendSuccessfulEmailAsync(string toEmail, string body, string subject);
+4: }
+Особливості:
+* Асинхронна відправка
+* Логування помилок без блокування основної операції
+* Використання SMTP
+3.5.4. Модуль генерації QR-кодів
+Функціональність: Генерація QR-кодів для прив'язки NFC
+Технічна реалізація:
+54:     private async Task<Result> SendSmtpEmailAsync(string recipientEmail, string subject, string htmlBody)
+55:     {
+56:         try
+57:         {
+58:             using var mailMessage = new MailMessage
+59:             {
+60:                 From = new MailAddress(_smtpEmail, "Lexi"),
+61:                 Subject = subject,
+62:                 Body = htmlBody,
+63:                 IsBodyHtml = true
+64:             };
+65: 
+66:             mailMessage.To.Add(recipientEmail);
+67: 
+68:             using var client = new SmtpClient(_smtpHost, _smtpHostPort)
+69:             {
+70:                 EnableSsl = true,
+71:                 UseDefaultCredentials = false,
+72:                 Credentials = new NetworkCredential(_smtpEmail, _smtpPassword),
+73:                 Timeout = 3000
+74:             };
+75: 
+76:             await client.SendMailAsync(mailMessage);
+77: 
+78:             return Result.Success();
+79:         }
+80:         catch (Exception ex)
+81:         {
+82:             _logger.LogError(ex, $"Error sending email to {recipientEmail} with subject: {subject}.");
+83:             return Result.Failure(EmailError.EmailNotSent());
+84:         }
+85:     }
+Використання:
+* GET /api/user/{userId}/nfc/qrcode/image → PNG image
+* QR-код містить URL форми: /api/nfc/form?userId={id}
+3.6. Робота з базою даних
+ORM – Entity Framework Core 10.0
+Переваги використання EF Core:
+* Code-First підхід: Моделі визначають структуру БД;
+* Міграції: Версіювання схеми БД;
+* LINQ: Типобезпечні запити;
+* Change Tracking: Автоматичне відстеження змін;
+* Lazy/Eager Loading: Гнучке завантаження зв'язків.
+Конфігурація зв'язків (Fluent API)
+Приклад конфігурації Package:
+01: public class PackageConfiguration : IEntityTypeConfiguration<Package>
+02: {
+03:     public void Configure(EntityTypeBuilder<Package> builder)
+04:     {
+05:         builder.HasOne(p => p.User)
+06:             .WithMany(u => u.Packages)
+07:             .HasForeignKey(p => p.UserId)
+08:             .OnDelete(DeleteBehavior.Restrict);
+09:             
+10:         builder.HasOne(p => p.DeliveryStatus)
+11:             .WithMany()
+12:             .HasForeignKey("DeliveryStatusId")
+13:             .OnDelete(DeleteBehavior.Restrict);
+14:     }
+15: }
+Особливості:
+* DeleteBehavior.Restrict – запобігає каскадному видаленню
+* Shadow Properties для FK
+* Identity columns для первинних ключів
+3.7. Документація API (Swagger/OpenAPI)
+Доступ: Swagger UI: https://localhost:7243/swagger
+3.7.1. Ендпоінти API
+Таблиця 3.1 – User Management
+MethodEndpointОписRequest BodyResponsePOST/api/user/courier/registerРеєстрація кур'єраRegisterUserDtoUser, 201POST/api/user/client/registerРеєстрація клієнтаRegisterUserDtoUser, 201GET/api/user/{userId}/nfc/qrcode/imageQR-код для NFC-PNG Image
+Таблиця 3.2 – Package Management
+MethodEndpointОписQuery/BodyResponseGET/api/package/courierПосилки для кур'єра?serialNumber={nfc}PackageDto[], 200GET/api/package/client/{userId}Посилки клієнта-PackageDto[], 200POST/api/package/{packageId}/status/in-progressВзяв посилку?serialNumber={nfc}200POST/api/package/courier/locker/open-for-placementВідкрити коміркуOpenLockerDto200POST/api/package/placeРозмістити в комірціPlacePackageDto200POST/api/package/locker/open-all-deliveredВідкрити всі коміркиOpenAllLockersDtoint[], 200POST/api/package/{packageId}/receiveОтримати посилку?serialNumber={nfc}200
+Таблиця 3.3 – NFC Management
+MethodEndpointОписRequestResponsePOST/api/nfcРеєстрація NFCRegisterNfcDtoUser, 200POST/api/nfc/validateВалідація NFCValidateNfcDtoUser, 200GET/api/nfc/serial/{serialNumber}/userUserId за NFC-int, 200GET/api/nfc/user/{userId}/serialNFC за UserId-string, 200GET/api/nfcВсі користувачі з NFC-User[], 200GET/api/nfc/formHTML-форма?userId={id}HTML
+Обробка помилок (Problem Details)
+Формат відповіді (RFC 7807):
+01: {
+02:   "status": 404,
+03:   "title": "user.NOT_FOUND",
+04:   "type": "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+05:   "detail": "User not found",
+06:   "error": {
+07:     "code": "user.NOT_FOUND",
+08:     "description": "User not found",
+09:     "type": "NotFound"
+10:   }
+11: }
+Коди статусів:
+* 200 OK – Успішна операція;
+* 201 Created – Створено ресурс;
+* 400 Bad Request – Невалідні дані;
+* 401 Unauthorized – Не авторизовано;
+* 403 Forbidden – Немає прав;
+* 404 Not Found – Ресурс не знайдено;
+* 409 Conflict – Конфлікт (наприклад, email вже існує);
+* 500 Internal Server Error – Помилка сервера.
+Додаткові компоненти
+Логування (Serilog)
+Конфігурація:
+1: builder.Host.UseSerilog((context, services, configuration) => configuration
+2:     .ReadFrom.Configuration(context.Configuration)
+3:     .WriteTo.Console()
+4:     .WriteTo.File("logs/log-.txt", 
+5:         rollingInterval: RollingInterval.Day, 
+6:         retainedFileCountLimit: 7));
+Використання:
+* Console – для розробки
+* File – для production (ротація щодня, зберігання 7 днів)
+* Request Logging – автоматичне логування HTTP-запитів
+3.8. Глобальна обробка винятків
+01: public class GlobalExceptionHandler : IExceptionHandler
+02: {
+03:     public async ValueTask<bool> TryHandleAsync(
+04:         HttpContext httpContext, 
+05:         Exception exception, 
+06:         CancellationToken cancellationToken)
+07:     {
+08:         _logger.LogError(exception, "Unhandled exception occurred");
+09:         // Повернення Problem Details
+10:     }
+11: }
+12: 
+3.9. Технологічний стек
+Backend:
+* .NET 10.0 – Runtime платформа;
+* ASP.NET Core – Web framework;
+* Entity Framework Core 10.0 – ORM;
+* Npgsql.EntityFrameworkCore.PostgreSQL 10.0 – PostgreSQL provider.
+Бібліотеки:
+* Serilog.AspNetCore 10.0 – Структуроване логування;
+* QRCoder 1.7.0 – Генерація QR-кодів;
+* Swashbuckle.AspNetCore 10.0 – Swagger/OpenAPI.
+База даних:
+* PostgreSQL – Реляційна СУБД.
+ВИСНОВКИ
+     В ході виконання лабораторної роботи №2 була розроблена серверна частина програмної системи управління поштоматами з NFC-автентифікацією. Реалізована багатошарова архітектура на базі ASP.NET Core 10.0 з чітким розділенням на Presentation, Business Logic, Data Access та Domain шари, що забезпечує високу підтримуваність та масштабованість коду.Спроєктована та реалізована нормалізована база даних PostgreSQL з 7 таблицями, які охоплюють всі аспекти функціонування системи: користувачі, ролі, посилки, категорії, статуси доставки та логування. Для взаємодії з БД використано Entity Framework Core 10.0 з підходом Code-First та системою міграцій, що дозволяє версіювати зміни структури бази даних. Створено RESTful API з ендпоінтами для управління користувачами, посилками та NFC-автентифікацією з повною документацією через Swagger/OpenAPI. Інтегровані додаткові підсистеми, які підвищують якість та функціональність рішення: структуроване логування через Serilog з записом в консоль та файли, сервіс email-повідомлень для інформування користувачів про події в системі, генератор QR-кодів для зручної прив'язки NFC-карток, глобальний обробник винятків для централізованої обробки помилок за стандартом RFC 7807 Problem Details та налаштування CORS для підтримки міжсайтових запитів
+
+ПЕРЕЛІК ДЖЕРЕЛ ПОСИЛАННЯ
+    1. Refactoring: improving the design of existing code. Addison-Wesley Professional, 1999. 464 с.
+    2. Microsoft C# Coding Conventions. URL: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions (дата звернення: 11.11.2025);
+    3. .NET Runtime Coding Style. URL: 
+https://github.com/dotnet/runtime/blob/main/docs/coding-guidelines/coding-style.md (дата звернення: 11.11.2025);
+    4. ASP.NET Core Documentation. URL: https://learn.microsoft.com/en-us/aspnet/core/ (дата звернення: 11.11.2025);
+    5. StyleCop Analyzers. URL: https://github.com/DotNetAnalyzers/StyleCopAnalyzers (дата звернення: 11.11.2025);
+    6. EditorConfig. URL:   https://editorconfig.org/ (дата звернення: 11.11.2025);
+    7. ReSharper Code Inspection. URL:   https://www.jetbrains.com/help/resharper/Code_Analysis__Code_Inspections.html (дата звернення: 11.11.2025).
+
+
+ДОДАТОК А
+Відеозапис
+Хронологічний опис відеозапису:
+00:00:00 — Вступ
+00:00:12 — UML-діаграма прецедентів.
+00:00:23 — Актори системи.
+00:00:31 — Функціонал курʼєра
+00:00:52 — Функціонал клієнта
+00:01:25 — Використання Google SMTP
+00:01:30 — Entity-Relation діаграма
+00:01:44 — Сутність «Посилка»
+00:02:04 — Статуси доставки
+00:02:18 — Log та User
+00:02:35 — Діаграма бази даних
+00:02:55 — Перехід до ORM
+00:03:01 — Entity Framework
+00:03:33 — Generic Repository
+00:03:52 — Методи репозиторію
+00:04:14 — Оптимізація ORM
+00:04:52 — CRUD-методи
+00:05:11 — Огляд API
+00:05:19 — Контролери
+00:06:03 — Створення клієнта
+00:06:24 — Реєстрація NFC клієнта
+00:07:02 — Перевірка NFC
+00:07:45 — Валідація NFC
+00:08:04 — Робота з пакунками
+00:08:42 — Реєстрація курʼєра
+00:09:10 — NFC курʼєра
+00:09:40 — Пакунки для курʼєра
+00:10:01 — Зміна статусу пакунків
+00:10:34 — Робота з локером
+00:11:15 — Статус Delivered
+00:11:29 — Отримання посилки
+00:12:24 — Завершення
+
+
+ДОДАТОК Б
+Графічні матеріали
+
+Рисунок Б.1 – UML-діаграма прецедентів
+
+
+
+Рисунок Б.2 – ER діаграма
+
+
+Рисунок Б.3 – Структура бази даних
+
+
+ДОДАТОК В
+Програмний код
+Програмний код знаходиться за посиланням:
+https://github.com/NureChuvaievArtem/ark-pzpi-23-3-chuvaiev-artem/tree/main/Lab2
+61
+
+

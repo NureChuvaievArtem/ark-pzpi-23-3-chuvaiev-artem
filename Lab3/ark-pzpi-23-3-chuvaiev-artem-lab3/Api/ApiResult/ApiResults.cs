@@ -1,0 +1,90 @@
+﻿using Api.Infrastructure.Errors;
+using Api.Infrastructure.ResultPattern;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api.ApiResult;
+
+public static class ApiResults
+{
+    public static ProblemDetails ToProblemDetailsObject(Error error)
+    {
+        return new ProblemDetails
+        {
+            Status = GetStatusCode(error.Type),
+            Title = error.Code,
+            Type = GetType(error.Type),
+            Detail = error.Description,
+            Extensions = new Dictionary<string, object?>
+            {
+                { "error", error }
+            }
+        };
+    }
+    
+    public static IActionResult ToProblemDetails(Error error)
+    {
+        var problemDetails = ToProblemDetailsObject(error);
+
+        return new ObjectResult(problemDetails);
+    }
+    
+    public static IActionResult ToProblemDetails(Result result)
+    {
+        if (result.IsSuccess)
+        {
+            throw new InvalidOperationException();
+        }
+
+        var firstError = result.Errors.FirstOrDefault();
+        
+        return ToProblemDetails(firstError);
+    }
+
+    public static int GetStatusCode(ErrorType errorType) =>
+        errorType switch
+        {
+            ErrorType.Validation => StatusCodes.Status400BadRequest,
+            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+            ErrorType.Conflict => StatusCodes.Status409Conflict,
+            ErrorType.NotFound => StatusCodes.Status404NotFound,
+            _ => StatusCodes.Status500InternalServerError,
+        };
+
+    public static string GetType(ErrorType errorType) =>
+        errorType switch
+        {
+            ErrorType.Validation => "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            ErrorType.Forbidden => "https://tools.ietf.org/html/rfc7231#section-6.5.3", //403
+            ErrorType.NotFound => "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+            ErrorType.Conflict => "https://tools.ietf.org/html/rfc7231#section-6.5.8",
+            ErrorType.Unauthorized => "https://tools.ietf.org/html/rfc7235#section-3.1", // 401 Unauthorized
+            _ => "https://tools.ietf.org/html/rfc7231#section-6.6.1", // 500 Internal Server Error
+        };
+    
+    // Lab 3: Helper methods for success responses
+    public static IActionResult Success<T>(T data)
+    {
+        return new OkObjectResult(new { Success = true, Data = data });
+    }
+    
+    public static IActionResult Success(string message)
+    {
+        return new OkObjectResult(new { Success = true, Message = message });
+    }
+    
+    public static IActionResult Created<T>(T data)
+    {
+        return new ObjectResult(new { Success = true, Data = data }) { StatusCode = StatusCodes.Status201Created };
+    }
+    
+    public static IActionResult NotFound(string message)
+    {
+        return new NotFoundObjectResult(new { Success = false, Message = message });
+    }
+    
+    public static IActionResult BadRequest(string message)
+    {
+        return new BadRequestObjectResult(new { Success = false, Message = message });
+    }
+}
