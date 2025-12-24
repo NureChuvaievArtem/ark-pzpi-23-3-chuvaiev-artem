@@ -1,0 +1,345 @@
+﻿Міністерство освіти та науки України
+Харківський національний університет радіоелектроніки
+
+
+Кафедра програмної інженерії
+
+
+
+Звіт до лабораторної роботи №5
+з дисципліни «Аналіз та рефакторинґ коду»
+на тему: «Програмна система поштових шафок із магнітними замками, що відпираються за допомогою NFC»
+
+
+
+
+
+
+
+Виконав 	
+ст. гр. ПЗПІ-23-3                                                               			Чуваєв А.О.
+Перевірив
+ст. викладач катедри ПІ 					Сокорчук І.П.
+
+
+
+
+
+                                                                                     
+Харків 2025
+1. ІСТОРІЯ ЗМІН
+№ДатаВерсія звітуОпис змін та виправлень116.12.251.0Аналіз ринку Cloud систем217.12.251.1Вибрано та проаналізовано інфраструктуру Azure317.12.251.2Розгорнуто застосунок на Azure417.12.251.3Створено звіт
+
+
+2. ЗАВДАННЯ
+     Мета роботи: 
+     Набути практичних навичок розгортання багатокомпонентної програмної системи в хмарному середовищі Microsoft Azure з використанням сучасних DevOps практик; опанувати методи конфігурування серверної частини (ASP.NET Core Web API), керованої бази даних (Azure Database for PostgreSQL), налаштування безпеки, моніторингу та діагностики; вивчити підхід Infrastructure as Code (IaC) за допомогою Bicep для автоматизації та версіонування інфраструктури.
+
+
+3. ОПИС ВИКОНАНОЇ РОБОТИ
+3.1. Деплой серверної частини (Web API)
+3.1.1. Вибір хостинг-сервісу
+     Для розгортання серверної частини програмної системи було обрано хмарну 
+платформу Microsoft Azure, зокрема сервіс Azure Web App. Цей вибір 
+обумовлений наступними факторами:
+* Нативна підтримка .NET додатків - Azure Web App оптимізований для ASP.NET Core застосунків, що забезпечує високу продуктивність та стабільність роботи;
+* Масштабованість - можливість автоматичного масштабування в залежності від навантаження на систему;
+* Інтеграція з екосистемою Azure - спрощена інтеграція з іншими сервісами Azure, зокрема Azure Database for PostgreSQL;
+* Підтримка безперервної інтеграції та доставки (CI/CD) - можливість автоматизації процесу деплою через GitHub Actions або Azure DevOps;
+* Моніторинг та діагностика - вбудовані інструменти для відстеження продуктивності, логування та аналізу помилок;
+* Безпека - підтримка HTTPS за замовчуванням, можливість налаштування SSL/TLS сертифікатів, захист від DDoS атак.
+3.1.2. Конфігурація середовища розгортання
+Платформа: Windows
+Runtime: .NET 10.0
+Архітектура: x64
+Тип розгортання: Code deployment
+Регіон: Poland Central
+
+
+3.1.3. Процес розгортання Web API
+Розгортання серверної частини включало наступні етапи:
+
+1. ПІДГОТОВКА ПРОЕКТУ ДО ДЕПЛОЮ
+
+* Налаштування конфігураційних файлів (appsettings.json, appsettings.Production.json);
+* Встановлення змінних середовища для чутливих даних (connection strings, API keys, JWT secrets);
+* Налаштування рівнів логування для production середовища;
+* Конфігурація CORS політик для дозволених доменів;
+* Налаштування SSL/TLS для безпечного з'єднання.
+
+2. СТВОРЕННЯ AZURE WEB APP РЕСУРСУ
+
+* Створення нового App Service в Azure Portal;
+* Вибір відповідного плану App Service (ціновий рівень) відповідно до потреб проекту;
+* Налаштування конфігурації операційної системи (Windows);
+* Вибір версії runtime (.NET 10.0);
+* Налаштування регіону розміщення.
+
+3. НАЛАШТУВАННЯ БЕЗПЕКИ ТА АУТЕНТИФІКАЦІЇ
+
+Налаштування Environment Variables в Azure Web App для захисту 
+     конфіденційних даних:
+* Database Connection String
+* JWT Secret Key
+* Email Service Credentials
+Налаштування HTTPS Only режиму для забезпечення безпеки передачі даних;
+4. ПУБЛІКАЦІЯ ДОДАТКУ
+Через Rider:
+* Використання вбудованого інструменту "Publish to Azure"
+* Вибір цільового Web App ресурсу
+* Компіляція проекту в Release конфігурації
+* Автоматичне завантаження на Azure
+5. НАЛАШТУВАННЯ ДОДАТКОВИХ ПАРАМЕТРІВ
+
+Application Settings - конфігурація змінних середовища:
+* ASPNETCORE_ENVIRONMENT=Production
+* ConnectionStrings__DefaultConnection=<PostgreSQL Connection String>
+Configuration - налаштування загальних параметрів:
+* Always On: Enabled (для запобігання "холодним" стартам)
+* HTTP Version: 2.0
+* ARR Affinity: Disabled (для покращення балансування навантаження)
+CORS - налаштування політики крос-доменних запитів:
+* Дозволені origins для frontend додатків
+* Дозволені HTTP методи (GET, POST, PUT, DELETE)
+* Дозволені headers
+3.1.4. Налаштування моніторингу та діагностики
+Application Insights - підключення для детального моніторингу:
+* Відстеження запитів та відповідей
+* Аналіз продуктивності
+* Виявлення помилок та exceptions
+* Моніторинг доступності
+3.2. Деплой бази даних (PostgreSQL Azure)
+3.2.1. Вибір сервісу бази даних
+     Для зберігання даних програмної системи було обрано Azure Database for 
+PostgreSQL. Цей вибір мотивований наступними чинниками:
+* Повна керованість - Microsoft повністю керує інфраструктурою, включаючи оновлення, патчі безпеки, резервне копіювання;
+* Висока доступність - вбудовані механізми забезпечення відмовостійності та автоматичного відновлення;
+* Масштабованість - можливість вертикального масштабування (зміна рівня обчислювальних ресурсів) без простоїв;
+* Безпека - шифрування даних в спокої та при передачі, підтримка SSL з'єднань, firewall rules, virtual network integration;
+* Автоматичне резервне копіювання - регулярні backup з можливістю  відновлення до конкретної точки в часі (Point-in-Time Restore);
+* Продуктивність - оптимізовані SSD диски для швидкого читання/запису;
+* Сумісність - повна сумісність з PostgreSQL, підтримка Entity Framework Core з Npgsql драйвером.
+3.2.2. Конфігурація бази даних
+Тип сервера: Azure Database for PostgreSQL - Burstable
+Версія PostgreSQL: 18 (або остання стабільна версія)
+Тип обчислень: General Purpose або Burstable (залежно від навантаження)
+Розмір сховища: початкові 32 GB з можливістю автоматичного розширення
+Backup retention: 7
+Регіон: Poland Central
+
+3.2.3. Процес розгортання бази даних
+
+1. СТВОРЕННЯ AZURE DATABASE FOR POSTGRESQL
+
+Створення нового ресурсу в Azure Portal:
+* Вибір типу сервісу: "Azure Database for PostgreSQL Flexible Server"
+* Вказання імені сервера (буде частиною connection string)
+* Вибір регіону розміщення
+  Налаштування обчислювальних ресурсів:
+* Compute tier: Burstable, General Purpose, або Memory Optimized
+* Compute size: вибір кількості vCores та RAM
+* Storage: початковий розмір та налаштування auto-growth
+   
+2. НАЛАШТУВАННЯ ПАРАМЕТРІВ БАЗИ ДАНИХ
+
+Server parameters - оптимізація параметрів PostgreSQL:
+* max_connections: відповідно до очікуваного навантаження
+* shared_buffers: оптимізація використання пам'яті
+* work_mem: налаштування для складних запитів
+* maintenance_work_mem: для операцій обслуговування
+
+
+3. СТВОРЕННЯ БАЗИ ДАНИХ ТА ЗАСТОСУВАННЯ МІГРАЦІЙ
+
+Підключення до PostgreSQL сервера через pgAdmin:   
+Створення окремої бази даних для додатку:
+CREATE DATABASE PackageDelivery;
+Застосування Entity Framework Core міграцій:
+* Налаштування connection string в локальному середовищі
+* Виконання команди: dotnet ef database update --connection "<connection-string>"
+4. ЗАПОВНЕННЯ ПОЧАТКОВИМИ ДАНИМаИ (SEEDING)
+
+Виконання DatabaseSeeder для створення початкових даних:
+* Ролі користувачів (Admin, User)
+* Статуси доставки
+* Категорії пакунків
+* Тестові дані (за необхідності)
+5. НАЛАШТУВАННЯ CONNECTION STRING В WEB APP
+
+Додавання connection string в Azure Web App Configuration:
+Name: DefaultConnection
+Value: Host=<server-name>.postgres.database.azure.com;
+     Port=5432;
+     Database=atark2025_db;
+     Username=app_user;
+     Password=<password>;
+     SSL Mode=Require;
+     Trust Server Certificate=true;
+Type: PostgreSQL
+6. НАЛАШТУВАННЯ BACKUP
+
+Налаштування періоду утримання backup (7 днів)
+
+7. МОНІТОРИНГ ТА ОПТИМІЗАЦІЯ
+
+Metrics Monitoring через Azure Portal:
+* CPU percent
+* Memory percent
+* Storage used
+* Active connections
+* Failed connections
+3.3. Повторне розгортання застосунку через Bicep
+3.3.1. Вибір інструменту Infrastructure as Code
+Для автоматизації процесу розгортання було обрано Bicep - декларативну мову для опису Azure ресурсів. Переваги Bicep:
+* Лаконічний та читабельний синтаксис порівняно з ARM templates;
+* Модульність та можливість повторного використання коду;
+* Автоматичне управління залежностями між ресурсами;
+* Підтримка IntelliSense в IDE;
+* Інтеграція з CI/CD pipeline.
+3.3.2. Структура Bicep проекту
+infrastructure/
+├── main.bicep                    # Головний файл
+├── main.bicepparam              # Параметри розгортання
+└── modules/
+    ├── appServicePlan.bicep     # Модуль App Service Plan
+    ├── webApp.bicep             # Модуль Web App
+    └── postgreSql.bicep         # Модуль PostgreSQL
+3.3.3. Основні Bicep модулі
+     Головний файл (main.bicep) об'єднує всі компоненти інфраструктури (витяг з основного файлу):
+01: param sites_packagedeliverybackendwindows_name string = 'packagedeliverybackendwindows'
+02: param serverfarms_ASP_PackageDelivery_be37_name string = 'ASP-PackageDelivery-be37'
+03: param flexibleServers_packagedeliverysql_name string = 'packagedeliverysql'
+04: 
+05: resource flexibleServers_packagedeliverysql_name_resource 'Microsoft.DBforPostgreSQL/flexibleServers@2025-01-01-preview' = {
+06:   name: flexibleServers_packagedeliverysql_name
+07:   location: 'Poland Central'
+08:   sku: {
+09:     name: 'Standard_B1ms'
+10:     tier: 'Burstable'
+11:   }
+12:   properties: {
+13:     replica: {
+14:       role: 'Primary'
+15:     }
+16:     storage: {
+17:       iops: 120
+18:       tier: 'P4'
+19:       storageSizeGB: 32
+20:       autoGrow: 'Disabled'
+21:     }
+22:     network: {
+23:       publicNetworkAccess: 'Enabled'
+24:     }
+25:     dataEncryption: {
+26:       type: 'SystemManaged'
+27:     }
+28:     authConfig: {
+29:       activeDirectoryAuth: 'Disabled'
+30:       passwordAuth: 'Enabled'
+31:     }
+32:     version: '18'
+33:     administratorLogin: 'pgadmin'
+34:     availabilityZone: '1'
+35:     backup: {
+36:       backupRetentionDays: 7
+37:       geoRedundantBackup: 'Disabled'
+38:     }
+39:     highAvailability: {
+40:       mode: 'Disabled'
+41:     }
+42:     maintenanceWindow: {
+43:       customWindow: 'Disabled'
+44:       dayOfWeek: 0
+45:       startHour: 0
+46:       startMinute: 0
+47:     }
+48:     replicationRole: 'Primary'
+49:   }
+50: }
+51: 
+3.3.4. Алгоритм повторного розгортання
+1. Підготовка середовища
+az login
+az account set --subscription "<subscription-id>"
+2. Створення Resource Group
+az group create 
+  --name rg-packagedelivery-prod 
+  --location polandcentral
+3. Валідація змін (What-If аналіз)
+az deployment group what-if 
+  --resource-group rg-packagedelivery-prod 
+  --template-file main.bicep 
+  --parameters main.bicepparam
+4. Розгортання інфраструктури
+az deployment group create 
+  --resource-group rg-packagedelivery-prod 
+  --template-file main.bicep 
+  --parameters main.bicepparam 
+  --mode Incremental
+5. Налаштування секретів
+az webapp config appsettings set 
+  --resource-group rg-packagedelivery-prod 
+  --name packagedelivery-api-prod 
+  --settings JwtSettings__Secret="<secret-key>"
+6. Деплой додатку
+dotnet publish -c Release -o ./publish
+az webapp deployment source config-zip 
+  --resource-group rg-packagedelivery-prod 
+  --name packagedelivery-api-prod 
+  --src app.zip
+
+
+ВИСНОВКИ
+     В результаті виконання лабораторної роботи №5 було успішно розгорнуто 
+програмну систему управління поштоматом в хмарному середовищі Microsoft Azure.
+     Серверна частина (ASP.NET Core Web API) була розгорнута на Azure Web App з 
+використанням Windows платформи та .NET 10.0 runtime. Налаштовано безпеку, 
+моніторинг та діагностику додатку.
+     База даних PostgreSQL була розгорнута на Azure Database for PostgreSQL 
+Flexible Server з налаштуванням високої доступності, автоматичного резервного 
+копіювання та належного рівня безпеки.
+     Розгорнута система готова до використання в production середовищі та 
+забезпечує надійну, масштабовану та безпечну роботу всіх компонентів 
+поштоматної системи.
+
+ПЕРЕЛІК ДЖЕРЕЛ ПОСИЛАННЯ
+    1. Refactoring: improving the design of existing code. Addison-Wesley Professional, 1999. 464 с.
+    2. Microsoft C# Coding Conventions. URL: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions (дата звернення: 12.12.2025);
+    3. .NET Runtime Coding Style. URL: 
+https://github.com/dotnet/runtime/blob/main/docs/coding-guidelines/coding-style.md (дата звернення: 12.12.2025);
+    4. ASP.NET Core Documentation. URL: https://learn.microsoft.com/en-us/aspnet/core/ (дата звернення: 12.12.2025);
+    5. StyleCop Analyzers. URL: https://github.com/DotNetAnalyzers/StyleCopAnalyzers (дата звернення: 12.12.2025);
+    6. EditorConfig. URL:   https://editorconfig.org/ (дата звернення: 12.12.2025);
+    7. ReSharper Code Inspection. URL:   https://www.jetbrains.com/help/resharper/Code_Analysis__Code_Inspections.html (дата звернення: 12.12.2025).
+
+
+ДОДАТОК А
+Відеозапис
+Хронологічний опис відеозапису: https://youtu.be/ncVqiOtnWvw
+00:00 - 00:40 Вступ, представлення теми та мети роботи
+00:40 - 01:30 Вибір та обґрунтування Azure Web App для серверної частини
+01:30 - 02:20 Процес розгортання Web API (конфігурація, безпека, публікація)
+02:20 - 03:10 Розгортання PostgreSQL бази даних в Azure
+03:10 - 04:00 Налаштування бази даних, міграції, firewall rules
+04:00 - 05:00 Infrastructure as Code з Bicep (структура, модулі, розгортання)
+05:00 - 06:30 Демонстрація функціоналу: Реєстрація користувача
+06:30 - 08:30 Демонстрація функціоналу: Режим кур'єра (доставка посилки)
+08:30 - 11:00 Демонстрація функціоналу: Режим клієнта (отримання посилки)
+11:00 - 12:00 Висновки, результати роботи, досягнення
+
+
+ДОДАТОК Б
+Графічні матеріали
+
+
+Рисунок Б.1 – Ресурсна група в Microsoft Azure
+
+
+
+ДОДАТОК В
+Програмний код
+Програмний код знаходиться за посиланням
+https://github.com/NureChuvaievArtem/ark-pzpi-23-3-chuvaiev-artem/tree/main/Lab5
+61
+
+
